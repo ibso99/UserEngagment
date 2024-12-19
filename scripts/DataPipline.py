@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import datetime
 
 class DataPipeline:
@@ -7,6 +8,7 @@ class DataPipeline:
         #################################################
 
         def Data_Loader(data_path):
+
             return pd.read_csv(data_path)
         
         ################################################

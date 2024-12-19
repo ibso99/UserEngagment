@@ -10,22 +10,19 @@ class EDA_AND_STAT_ANALYZDER:
         # 1. User Segmentation
         df['Total_Duration'] = df['Dur. (ms)'] 
         df['Total_Data'] = df['Total DL (Bytes)'] + df['Total UL (Bytes)']
-        df['Decile'] = pd.qcut(df['Total_Duration'], q=10, labels=False) 
+        df['Decile'] = pd.qcut(df['Total_Duration'], q=10, labels=False,duplicates='drop') 
         decile_data = df.groupby('Decile')['Total_Data'].sum()
         print("\nTotal Data per Decile:")
         print(decile_data)
 
-        # 2. Basic Metrics
-        print("\nBasic Metrics:")
-        print(df.describe()) 
-
-        # 3. Univariate Analysis
+        # 2. Basic Metrics for univariate analysis
+        numeric_cols = df.select_dtypes(include=['float64', 'int64'])
         print("\nDispersion Parameters:")
-        print(df.agg(['mean', 'std', 'min', 'max', 'median', 'skew', 'kurtosis'])) 
+        print(numeric_cols.agg(['mean', 'std', 'min', 'max', 'median', 'skew', 'kurtosis']))
 
     def Univariate_graph(df):
 
-        # 4. Graphical Univariate Analysis
+        # 3. Graphical Univariate Analysis
         df = df.rename(columns={'MSISDN/Number': 'User'})
         df['Total_Session_Duration'] = df['Dur. (ms)']
         df['Total_Download'] = df['Total DL (Bytes)'] + df['Total UL (Bytes)']
@@ -42,20 +39,20 @@ class EDA_AND_STAT_ANALYZDER:
         plt.show()
 
     def Bivariate_graph(df):
-        # 5. Bivariate Analysis
+        # 4. Bivariate Analysis
         sns.scatterplot(x='Total DL (Bytes)', y='Total UL (Bytes)', data=df)
         plt.show()
 
     def Correlation(df):
-        # 6. Correlation Analysis
+        # 5. Correlation Analysis
         corr_matrix = df[['Social Media DL (Bytes)', 'Google DL (Bytes)', 'Email DL (Bytes)', 
                         'Youtube DL (Bytes)', 'Netflix DL (Bytes)', 'Gaming DL (Bytes)', 
                         'Other DL (Bytes)']].corr()
         sns.heatmap(corr_matrix, annot=True)
         plt.show()
-
-    def Correlation(df):
-        # 7. Dimensionality Reduction (PCA)
+        
+    def Pca_Analysis(df):
+        # 6. Dimensionality Reduction (PCA)
         pca = PCA(n_components=2)
         pca_result = pca.fit_transform(df[['Social Media DL (Bytes)', 'Google DL (Bytes)', 'Email DL (Bytes)', 
                                         'Youtube DL (Bytes)', 'Netflix DL (Bytes)', 'Gaming DL (Bytes)', 
