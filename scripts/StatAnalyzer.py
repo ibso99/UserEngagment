@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 
-class EDA_AND_STAT_ANALYZDER:
+class EDA_AND_STAT_ANALYZER:
 
     def EDA(df):
         # 1. User Segmentation
@@ -50,7 +50,7 @@ class EDA_AND_STAT_ANALYZDER:
                         'Other DL (Bytes)']].corr()
         sns.heatmap(corr_matrix, annot=True)
         plt.show()
-        
+
     def Pca_Analysis(df):
         # 6. Dimensionality Reduction (PCA)
         pca = PCA(n_components=2)
