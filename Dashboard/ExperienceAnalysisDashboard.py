@@ -27,12 +27,12 @@ class ExperienceDashboard:
         st.header('Aggregated User Data')
         st.dataframe(self.analyzer.user_agg)
 
-        # Plot experience scores
-        st.markdown("## Experience Scores")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.histplot(self.analyzer.user_agg['Experience_Score'], kde=True, ax=ax)
-        ax.set_title('Distribution of Experience Scores')
-        st.pyplot(fig)
+        # Commented out the plot for the distribution of experience scores
+        # st.markdown("## Experience Scores")
+        # fig, ax = plt.subplots()
+        # sns.histplot(self.analyzer.user_agg['Experience_Score'], kde=True, ax=ax)
+        # ax.set_title('Distribution of Experience Scores')
+        # st.pyplot(fig)
 
         # Display top 10 best experience customers
         st.markdown("## Top 10 Best Experience Customers")
@@ -41,9 +41,8 @@ class ExperienceDashboard:
 
         # Plot top 10 best experience customers using a bar plot
         fig, ax = plt.subplots(figsize=(10, 6))
-        sns.barplot(x='MSISDN/Number', y='Experience_Score',  
-                    data=top_experience_customers, ax=ax, 
-                    palette='viridis')
+        sns.barplot(x='MSISDN/Number', y='Experience_Score',  data=top_experience_customers, ax=ax, hue='Experience_Score', palette='viridis', legend=False)
         ax.set_title('Top 10 Best Experience Customers')
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+        ax.set_xticks(range(len(top_experience_customers)))
+        ax.set_xticklabels(top_experience_customers['MSISDN/Number'], rotation=45, ha='right')
         st.pyplot(fig)
