@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import euclidean_distances
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -18,6 +19,8 @@ class UserEngagementAnalyzer:
             df: pandas DataFrame with the required columns.
         """
         self.df = df
+        self.user_agg = None
+        self.engagement_cluster_centers_ = None
 
     def calculate_engagement_metrics(self):
         """
@@ -29,13 +32,45 @@ class UserEngagementAnalyzer:
 
     def aggregate_user_data(self):
         """
-        Aggregates engagement metrics per user.
+        Aggregates network parameters and handset type per customer,
+        handling missing values using mean/mode.
         """
+        required_columns = [
+            'TCP DL Retrans. Vol (Bytes)', 'Avg RTT DL (ms)', 'Avg Bearer TP DL (kbps)',
+            'Handset Type', 'MSISDN/Number', 'Dur. (ms)', 'Total UL (Bytes)', 'Total DL (Bytes)'
+        ]
+
+        # Check for missing columns and handle them
+        for col in required_columns:
+            if col not in self.df.columns:
+                raise KeyError(f"Column '{col}' is missing from the DataFrame.")
+
+        # Calculate additional required columns
+        self.df['Session_Frequency'] = self.df.groupby('MSISDN/Number')['MSISDN/Number'].transform('count')
+        self.df['Total_Session_Duration'] = self.df.groupby('MSISDN/Number')['Dur. (ms)'].transform('sum')
+        self.df['Total_Traffic'] = self.df['Total UL (Bytes)'] + self.df['Total DL (Bytes)']
+
+        fill_values = {
+            'TCP DL Retrans. Vol (Bytes)': self.df['TCP DL Retrans. Vol (Bytes)'].mean(),
+            'Avg RTT DL (ms)': self.df['Avg RTT DL (ms)'].mean(),
+            'Avg Bearer TP DL (kbps)': self.df['Avg Bearer TP DL (kbps)'].mean(),
+            'Handset Type': self.df['Handset Type'].mode()[0]
+        }
+        self.df.fillna(fill_values, inplace=True)
+
         self.user_agg = self.df.groupby('MSISDN/Number').agg({
+            'TCP DL Retrans. Vol (Bytes)': 'mean',
+            'Avg RTT DL (ms)': 'mean',
+            'Handset Type': 'first',
+            'Avg Bearer TP DL (kbps)': 'mean',
             'Session_Frequency': 'first',
-            'Total_Session_Duration': 'sum',
-            'Total_Traffic': 'sum'
+            'Total_Session_Duration': 'first',
+            'Total_Traffic': 'first'
         }).reset_index()
+
+        # Print aggregated user data 
+        # print("\nAggregated User Data:")
+        # print(self.user_agg)
 
     def find_top_customers(self, n=10):
         """
@@ -65,6 +100,29 @@ class UserEngagementAnalyzer:
                                                             'Total_Traffic']])
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
         self.user_agg['Cluster'] = kmeans.fit_predict(normalized_data)
+        self.engagement_cluster_centers_ = kmeans.cluster_centers_
+
+    def calculate_engagement_score(self):
+        """
+        Calculates engagement score based on Euclidean distance 
+        from the least engaged cluster.
+        """
+        if self.engagement_cluster_centers_ is None:
+            raise ValueError("Engagement clustering must be performed first. "
+                             "Call cluster_users() before calculating engagement score.")
+
+        # Select the least engaged cluster center (e.g., the first one) 
+        least_engaged_center = self.engagement_cluster_centers_[0] 
+
+        # Normalize engagement data
+        scaler = StandardScaler()
+        normalized_engagement = scaler.fit_transform(self.user_agg[['Session_Frequency', 
+                                                                    'Total_Session_Duration', 
+                                                                    'Total_Traffic']])
+
+        # Calculate Euclidean distances to the least engaged cluster
+        self.user_agg['Engagement_Score'] = euclidean_distances(normalized_engagement, 
+                                                                least_engaged_center.reshape(1, -1))[:, 0]
 
     def analyze_clusters(self):
         """

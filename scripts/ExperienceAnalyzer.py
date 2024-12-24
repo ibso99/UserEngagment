@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import euclidean_distances
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -17,7 +18,9 @@ class ExperienceAnalyzer:
         Args:
             df: pandas DataFrame with the required columns.
         """
-        self.df = df.copy() 
+        self.df = df.copy()
+        self.user_agg = None
+        self.experience_cluster_centers_ = None
 
     def aggregate_user_data(self):
         """
@@ -43,7 +46,7 @@ class ExperienceAnalyzer:
 
         # Print aggregated user data 
         print("\nAggregated User Data:")
-        print(self.user_agg)
+        # print(self.user_agg)
 
     def top_bottom_frequent_values(self, column, n=10):
         """
@@ -101,6 +104,29 @@ class ExperienceAnalyzer:
                                                             'Avg Bearer TP DL (kbps)']])
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
         self.user_agg['Cluster'] = kmeans.fit_predict(normalized_data)
+        self.experience_cluster_centers_ = kmeans.cluster_centers_
+
+    def calculate_experience_score(self):
+        """
+        Calculates experience score based on Euclidean distance 
+        from the best experience cluster.
+        """
+        if self.experience_cluster_centers_ is None:
+            raise ValueError("Experience clustering must be performed first. "
+                             "Call cluster_users() before calculating experience score.")
+
+        # Select the best experience cluster center (e.g., the first one) 
+        best_experience_center = self.experience_cluster_centers_[0] 
+
+        # Normalize experience data
+        scaler = StandardScaler()
+        normalized_experience = scaler.fit_transform(self.user_agg[['TCP DL Retrans. Vol (Bytes)', 
+                                                                    'Avg RTT DL (ms)', 
+                                                                    'Avg Bearer TP DL (kbps)']])
+
+        # Calculate Euclidean distances to the best experience cluster
+        self.user_agg['Experience_Score'] = euclidean_distances(normalized_experience, 
+                                                                best_experience_center.reshape(1, -1))[:, 0]
 
     def describe_clusters(self):
         """
@@ -125,3 +151,36 @@ class ExperienceAnalyzer:
                 cluster_label = "Low Performance"
             print(f"  - Cluster Label: {cluster_label}")
             print()
+
+    def visualize_clusters(self):
+        """
+        Visualizes user experience clusters.
+        """
+        sns.scatterplot(x='Avg Bearer TP DL (kbps)', y='Avg RTT DL (ms)', hue='Cluster', 
+                        data=self.user_agg)
+        plt.title("User Experience Clusters")
+        plt.xlabel("Average Throughput (kbps)")
+        plt.ylabel("Average RTT DL (ms)")
+        plt.show()
+
+    def find_optimal_k(self, max_k=10):
+        """
+        Finds the optimal number of clusters using the elbow method.
+
+        Args:
+            max_k: Maximum number of clusters to evaluate.
+        """
+        inertia = []
+        for k in range(1, max_k + 1):
+            scaler = StandardScaler()
+            normalized_data = scaler.fit_transform(self.user_agg[['TCP DL Retrans. Vol (Bytes)', 
+                                                            'Avg RTT DL (ms)', 
+                                                            'Avg Bearer TP DL (kbps)']])
+            kmeans = KMeans(n_clusters=k, random_state=42)
+            kmeans.fit(normalized_data)
+            inertia.append(kmeans.inertia_)
+        plt.plot(range(1, max_k + 1), inertia)
+        plt.xlabel('Number of Clusters (k)')
+        plt.ylabel('Inertia')
+        plt.title('Elbow Method for Optimal k')
+        plt.show()

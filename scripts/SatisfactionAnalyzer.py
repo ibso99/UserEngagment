@@ -63,8 +63,8 @@ class SatisfactionAnalyzer:
         }).reset_index()
 
         # Print aggregated user data 
-        print("\nAggregated User Data:")
-        print(self.user_agg)
+        # print("\nAggregated User Data:")
+        # print(self.user_agg)
 
     def perform_engagement_clustering(self, n_clusters=3):
             """
@@ -188,6 +188,7 @@ class SatisfactionAnalyzer:
         })
         print("\nCluster Statistics:")
         print(cluster_stats)
+        return cluster_stats
 
 
     def export_to_postgresql(self, host, user, password, database, table_name, port=5432):
